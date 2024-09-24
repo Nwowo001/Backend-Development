@@ -16,7 +16,6 @@ const PORT = 5000;
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Middleware Setup
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -35,9 +34,9 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Utility: JWT Verification Middleware
 const verifyJWT = async (req, res, next) => {
   const token = req.cookies.token;
+  console.log("Token received:", token);
   if (!token) return res.status(403).json({ error: "No token provided." });
 
   try {
@@ -50,7 +49,6 @@ const verifyJWT = async (req, res, next) => {
       return res.status(401).json({ error: "User does not exist." });
     }
 
-    // Optionally refresh token if expired
     const currentTime = Math.floor(Date.now() / 1000);
     if (decoded.exp < currentTime) {
       const newToken = jwt.sign(
@@ -69,16 +67,13 @@ const verifyJWT = async (req, res, next) => {
   }
 };
 
-// API: Heartbeat Route
 app.get("/api/heartbeat", verifyJWT, (req, res) => {
   res.status(200).json({ message: "User is still active." });
 });
 
-// API: Sign-up Route
 app.post("/sign-up", async (req, res) => {
   const { name, email, password } = req.body;
 
-  // Input Validation
   if (!name || !email || !password) {
     return res.status(400).json({ error: "Please fill in all fields." });
   }
@@ -92,7 +87,6 @@ app.post("/sign-up", async (req, res) => {
   }
 
   try {
-    // Check if user already exists
     const userCheckResult = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
@@ -101,10 +95,8 @@ app.post("/sign-up", async (req, res) => {
       return res.status(400).json({ error: "User already exists." });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert new user into the database
     await pool.query(
       "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
       [name, email, hashedPassword]
@@ -117,17 +109,14 @@ app.post("/sign-up", async (req, res) => {
   }
 });
 
-// API: Login Route
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  // Input Validation
   if (!email || !password) {
     return res.status(400).json({ error: "Please fill in all fields." });
   }
 
   try {
-    // Retrieve user from the database
     const userResult = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
@@ -138,18 +127,15 @@ app.post("/login", async (req, res) => {
 
     const user = userResult.rows[0];
 
-    // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
 
-    // Generate JWT
     const token = jwt.sign({ userId: user.id }, process.env.JWT_KEY, {
       expiresIn: "1h",
     });
 
-    // Set JWT as an HTTP-only cookie
     res.cookie("token", token, { httpOnly: true, secure: isProduction });
 
     res.status(200).json({ message: "Login successful." });
@@ -159,13 +145,11 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// API: Logout Route
 app.post("/logout", (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Logout successful." });
 });
 
-// API: Token Refresh Route
 app.post("/refresh-token", (req, res) => {
   const token = req.cookies.token;
   if (!token) return res.status(403).json({ error: "No token provided." });
@@ -173,12 +157,10 @@ app.post("/refresh-token", (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_KEY);
 
-    // Generate a new token
     const newToken = jwt.sign({ userId: decoded.userId }, process.env.JWT_KEY, {
       expiresIn: "1h",
     });
 
-    // Set the new token as an HTTP-only cookie
     res.cookie("token", newToken, { httpOnly: true, secure: isProduction });
     res.status(200).json({ message: "Token refreshed." });
   } catch (error) {
@@ -187,7 +169,6 @@ app.post("/refresh-token", (req, res) => {
   }
 });
 
-// Start Server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

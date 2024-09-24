@@ -10,7 +10,7 @@ const Signin = () => {
     password: "",
   });
   const [errors, setErrors] = useState({});
-  const [isLogin, setIsLogin] = useState(false);
+  const [isLogin, setIsLogin] = useState(false); // Toggle between login and signup
   const navigate = useNavigate();
 
   const handleChange = (e) =>
@@ -19,6 +19,7 @@ const Signin = () => {
   const validateForm = () => {
     const newErrors = {};
     const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
+
     if (!isLogin && !formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.email) newErrors.email = "Email is required";
     if (!formData.password) newErrors.password = "Password is required";
@@ -33,7 +34,7 @@ const Signin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      const endpoint = isLogin ? "/login" : "/sign-up";
+      const endpoint = isLogin ? "/login" : "/sign-up"; // Toggle between sign-up and login
       try {
         const response = await axios.post(
           `${
@@ -43,14 +44,15 @@ const Signin = () => {
           { withCredentials: true }
         );
 
-        if (response.status === 200) {
-          if (isLogin) {
-            navigate("/home"); // Redirect to protected route
-          } else {
-            // On successful signup, redirect to login
+        if (response.status === 201) {
+          if (!isLogin) {
+            // Successful sign-up, switch to login interface
             setIsLogin(true);
             setFormData({ name: "", email: "", password: "" });
           }
+        } else if (response.status === 200) {
+          // Successful login, redirect to home
+          navigate("/home");
         }
       } catch (error) {
         console.error("Error during authentication:", error);
