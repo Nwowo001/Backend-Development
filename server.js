@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { pool } from "./dbConfig.js"; // Ensure the correct path and extension
+import { pool } from "./dbConfig.js";
 
 dotenv.config();
 
